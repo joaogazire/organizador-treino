@@ -1,0 +1,107 @@
+/* Fundo do Player: demonstração do movimento. Só transform/opacity animam. */
+.dm-root {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: calc(env(safe-area-inset-top) + 11dvh);
+  overflow: hidden;
+  color: var(--tone, currentColor);
+  opacity: 0.17;
+  --dm-op: 0.17;
+  animation: dm-in 0.4s ease-out both;
+}
+.dm-root.dm-rest { --dm-op: 0.13; opacity: 0.13; }
+
+.dm-root svg {
+  display: block;
+  width: min(72vw, 320px);
+  height: auto;
+  aspect-ratio: 240 / 200;
+  flex: none;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dm-root .dm-s { stroke-width: 3; }
+.dm-root .dm-h { stroke-width: 4; }
+.dm-root .dm-c { stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+
+@keyframes dm-in { from { opacity: 0; } to { opacity: var(--dm-op); } }
+
+/* ---- Repetições: A (início) -> M (meio exato) -> B (fim do esforço) -> volta ---- */
+.dm-a {
+  animation-duration: var(--dur);
+  animation-iteration-count: infinite;
+  animation-delay: calc(var(--dur) * var(--ph, 0) * -1);
+  animation-timing-function: ease-in-out;
+}
+.dm-ft .dm-a { animation-name: dm-ft; }
+.dm-st .dm-a { animation-name: dm-st; }
+.dm-sp .dm-a { animation-name: dm-sp; }
+.dm-sw .dm-a { animation-name: dm-sw; }
+
+/* estado A / M / B a partir das variáveis de cada grupo (rotação, translação do tronco, escala do cabo) */
+@keyframes dm-ft {
+  0%, 4% { rotate: 0deg; translate: 0 0; scale: 1 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  20% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  36%, 42% { rotate: var(--r, 0deg); translate: var(--x, 0px) var(--y, 0px); scale: var(--s, 1) 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  69% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  96%, 100% { rotate: 0deg; translate: 0 0; scale: 1 1; }
+}
+@keyframes dm-st {
+  0%, 4% { rotate: 0deg; translate: 0 0; scale: 1 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  31% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  58%, 64% { rotate: var(--r, 0deg); translate: var(--x, 0px) var(--y, 0px); scale: var(--s, 1) 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  82% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  97%, 100% { rotate: 0deg; translate: 0 0; scale: 1 1; }
+}
+@keyframes dm-sp {
+  0%, 3% { rotate: 0deg; translate: 0 0; scale: 1 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  24% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  46%, 78% { rotate: var(--r, 0deg); translate: var(--x, 0px) var(--y, 0px); scale: var(--s, 1) 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  90% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  98%, 100% { rotate: 0deg; translate: 0 0; scale: 1 1; }
+}
+@keyframes dm-sw {
+  0%, 100% { rotate: 0deg; translate: 0 0; scale: 1 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  25% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+  50% { rotate: var(--r, 0deg); translate: var(--x, 0px) var(--y, 0px); scale: var(--s, 1) 1; animation-timing-function: cubic-bezier(.42, 0, 1, 1); }
+  75% { rotate: var(--rm, 0deg); translate: var(--xm, 0px) var(--ym, 0px); scale: var(--sm, 1) 1; animation-timing-function: cubic-bezier(0, 0, .58, 1); }
+}
+
+/* ---- Corrida na esteira: ciclo contínuo (a duração do ciclo é --dur) ---- */
+.dm-run .dm-n-thigh { animation-name: dm-thigh; }
+.dm-run .dm-n-knee { animation-name: dm-knee; }
+.dm-run .dm-n-arm { animation-name: dm-arm; }
+.dm-run .dm-n-elbow { animation-name: dm-elbow; }
+.dm-run .dm-n-bob { animation-name: dm-bob; animation-duration: calc(var(--dur) / 2); animation-delay: 0s; }
+.dm-run .dm-belt { animation: dm-belt var(--bd, 0.2s) linear infinite; }
+
+@keyframes dm-thigh { 0%, 100% { rotate: -30deg; } 42% { rotate: 25deg; } }
+@keyframes dm-knee { 0%, 100% { rotate: 20deg; } 20% { rotate: 30deg; } 42% { rotate: 30deg; } 62% { rotate: 100deg; } 85% { rotate: 70deg; } }
+@keyframes dm-arm { 0%, 100% { rotate: 32deg; } 50% { rotate: -36deg; } }
+@keyframes dm-elbow { 0%, 100% { rotate: 16deg; } 50% { rotate: -10deg; } }
+@keyframes dm-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -3px; } }
+@keyframes dm-belt { from { translate: 0 0; } to { translate: -38px 0; } }
+
+/* ---- Pausa ---- */
+.dm-paused .dm-a,
+.dm-paused .dm-belt { animation-play-state: paused; }
+
+/* ---- Movimento reduzido: pose estática (congelada no esforço) ---- */
+@media (prefers-reduced-motion: reduce) {
+  .dm-root { animation: none; }
+  .dm-a, .dm-belt {
+    animation-play-state: paused !important;
+    animation-delay: calc(var(--dur) * (var(--ph, 0) + var(--still, 0.4)) * -1) !important;
+  }
+  .dm-run .dm-n-bob { animation-delay: 0s !important; }
+  .dm-run .dm-belt { animation: none !important; }
+}
