@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { Icon, type IconName } from './common';
 import { useStore } from '../store/useStore';
 import { Onboarding } from './Onboarding';
 import { Player } from './Player';
@@ -9,11 +10,11 @@ import { WeekScreen } from './WeekScreen';
 
 type Tab = 'hoje' | 'semana' | 'relatorio' | 'ajustes';
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'hoje', label: 'Hoje', icon: '⚡' },
-  { id: 'semana', label: 'Semana', icon: '🗓️' },
-  { id: 'relatorio', label: 'Relatório', icon: '📊' },
-  { id: 'ajustes', label: 'Ajustes', icon: '⚙️' },
+const TABS: { id: Tab; label: string; icon: IconName }[] = [
+  { id: 'hoje', label: 'Hoje', icon: 'today' },
+  { id: 'semana', label: 'Semana', icon: 'week' },
+  { id: 'relatorio', label: 'Relatório', icon: 'report' },
+  { id: 'ajustes', label: 'Ajustes', icon: 'settings' },
 ];
 
 export function App() {
@@ -31,8 +32,8 @@ export function App() {
       {tab === 'ajustes' && <SettingsScreen state={state} />}
       <nav class="tabbar">
         {TABS.map((t) => (
-          <button class={tab === t.id ? 'on' : ''} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }}>
-            <span class="tab-icon">{t.icon}</span>
+          <button class={tab === t.id ? 'on' : ''} aria-current={tab === t.id ? 'page' : undefined} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }}>
+            <Icon name={t.icon} />
             <span>{t.label}</span>
           </button>
         ))}

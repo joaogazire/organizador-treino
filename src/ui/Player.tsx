@@ -8,7 +8,8 @@ import { formatClock } from '../lib/share';
 import { keepAwake, releaseAwake } from '../lib/wakelock';
 import type { ActiveSession, AppState, SessionLog, SetLog } from '../store/types';
 import { discardActive, saveSession, updateActive } from './actions';
-import { FEELINGS, Segmented, Stepper } from './common';
+import { FEELINGS, Icon, Segmented, Stepper } from './common';
+import { ExerciseDemo } from './demo/ExerciseDemo';
 
 const exerciseById = new Map(Object.values(STRENGTH).flatMap((w) => w.exercises.map((e) => [e.id, e] as const)));
 
@@ -32,6 +33,26 @@ function upsertSet(sets: SetLog[], exerciseId: string, set: number, patch: Parti
   const next = [...sets];
   next[i] = { ...next[i], ...patch };
   return next;
+}
+
+/** Anel de progresso fino com o relógio dentro. `ratio` = fração do passo já cumprida (0–1). */
+function ClockRing(props: { ratio?: number; final?: number; children: string; small?: boolean }) {
+  const R = 46;
+  const C = 2 * Math.PI * R;
+  const ratio = props.ratio === undefined ? 0 : Math.min(1, Math.max(0, props.ratio));
+  return (
+    <div class={`clock-ring${props.small ? ' open' : ''}`}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="ring-track" cx="50" cy="50" r={R} />
+        {props.ratio !== undefined && (
+          <circle class="ring-fill" cx="50" cy="50" r={R} stroke-dasharray={C} stroke-dashoffset={C * ratio} />
+        )}
+      </svg>
+      <div class="player-clock" role="timer">
+        <span key={props.final ?? 0} class={props.final ? 'tick' : ''}>{props.children}</span>
+      </div>
+    </div>
+  );
 }
 
 export function Player(props: { state: AppState }) {
@@ -63,6 +84,7 @@ function StepView(props: { state: AppState; active: ActiveSession; steps: Step[]
   const { state, active: a, steps } = props;
   const now = useNow();
   const [menu, setMenu] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const step = steps[a.stepIndex];
   const paused = a.pausedElapsed !== undefined;
   const elapsed = paused ? a.pausedElapsed! : (now - a.stepStartedAt) / 1000;
@@ -136,39 +158,47 @@ function StepView(props: { state: AppState; active: ActiveSession; steps: Step[]
   const progress = (a.stepIndex + (duration ? Math.min(1, elapsed / duration) : 0)) / steps.length;
   const tone = step.tone ?? 'work';
   const nextWork = steps.slice(a.stepIndex + 1).find((s) => s.kind !== 'rest');
+  const finalSec = remaining !== undefined && !paused && remaining > 0 && remaining <= 3 ? Math.ceil(remaining) : 0;
+  const ratio = duration ? Math.min(1, elapsed / duration) : undefined;
+
+  const closeMenu = () => {
+    setLeaving(true);
+    setTimeout(() => { setMenu(false); setLeaving(false); }, 180);
+  };
 
   return (
-    <div class={`player tone-${tone}`}>
-      <div class="player-progress"><div style={{ width: `${progress * 100}%` }} /></div>
+    <div class={`player tone-${tone}${paused ? ' is-paused' : ''}`}>
+      <ExerciseDemo exerciseId={step.exerciseId} workout={a.workout} paused={paused} />
+      <div class="player-progress"><div style={{ transform: `scaleX(${progress})` }} /></div>
       <header class="player-top">
-        <button class="icon-btn" onClick={() => setMenu(true)} aria-label="Sair">✕</button>
+        <button class="icon-btn" onClick={() => setMenu(true)} aria-label="Sair"><Icon name="close" /></button>
         <div class="player-meta">
           <span>{workoutName(a.workout)}</span>
           <span class="muted">{[step.group, step.setLabel].filter(Boolean).join(' · ')}</span>
         </div>
-        <button class="icon-btn" onClick={togglePause} aria-label={paused ? 'Continuar' : 'Pausar'}>{paused ? '▶' : '❚❚'}</button>
+        <button class="icon-btn" onClick={togglePause} aria-label={paused ? 'Continuar' : 'Pausar'}>
+          <Icon name={paused ? 'play' : 'pause'} />
+        </button>
       </header>
 
-      <main class="player-main">
+      <main class="player-main" key={a.stepIndex}>
         {step.kind === 'rest' ? (
           <>
             <p class="player-kicker">Descanso</p>
-            <div class="player-clock">{formatClock(Math.max(0, remaining ?? 0))}</div>
+            <ClockRing ratio={ratio} final={finalSec}>{formatClock(Math.max(0, remaining ?? 0))}</ClockRing>
             <div class="row gap center">
-              <button class="btn ghost" onClick={() => updateActive((x) => ({ ...x, extraSec: x.extraSec - 15 }))}>−15 s</button>
-              <button class="btn ghost" onClick={() => updateActive((x) => ({ ...x, extraSec: x.extraSec + 15 }))}>+15 s</button>
+              <button class="btn quiet" onClick={() => updateActive((x) => ({ ...x, extraSec: x.extraSec - 15 }))}>−15 s</button>
+              <button class="btn quiet" onClick={() => updateActive((x) => ({ ...x, extraSec: x.extraSec + 15 }))}>+15 s</button>
             </div>
             {currentSet && step.exerciseId && (
               <div class="log-box">
-                <p class="muted small">Registre a série que acabou</p>
-                <div class="row gap">
-                  {!exerciseById.get(step.exerciseId)?.bodyweight && (
-                    <Stepper label="Carga" unit="kg" step={1} value={currentSet.kg}
-                      onChange={(kg) => updateActive((x) => ({ ...x, sets: upsertSet(x.sets, step.exerciseId!, step.set!, { kg }) }))} />
-                  )}
-                  <Stepper label="Reps" step={1} value={currentSet.reps}
-                    onChange={(reps) => updateActive((x) => ({ ...x, sets: upsertSet(x.sets, step.exerciseId!, step.set!, { reps }) }))} />
-                </div>
+                <p class="log-title">Série que acabou</p>
+                {!exerciseById.get(step.exerciseId)?.bodyweight && (
+                  <Stepper label="Carga" unit="kg" step={1} value={currentSet.kg}
+                    onChange={(kg) => updateActive((x) => ({ ...x, sets: upsertSet(x.sets, step.exerciseId!, step.set!, { kg }) }))} />
+                )}
+                <Stepper label="Reps" step={1} value={currentSet.reps}
+                  onChange={(reps) => updateActive((x) => ({ ...x, sets: upsertSet(x.sets, step.exerciseId!, step.set!, { reps }) }))} />
               </div>
             )}
             {step.next && <p class="player-next">A seguir: <strong>{step.next}</strong></p>}
@@ -178,16 +208,16 @@ function StepView(props: { state: AppState; active: ActiveSession; steps: Step[]
             <h1 class="player-title">{step.title}</h1>
             {step.target && <p class="player-target">{step.target}</p>}
             {step.detail && <p class="player-detail">{step.detail}</p>}
-            {step.tip && <p class="player-tip">💡 {step.tip}</p>}
             {remaining !== undefined ? (
-              <div class="player-clock">{formatClock(Math.max(0, remaining))}</div>
+              <ClockRing ratio={ratio} final={finalSec}>{formatClock(Math.max(0, remaining))}</ClockRing>
             ) : (
-              <div class="player-clock small">{formatClock(elapsed)}</div>
+              <ClockRing small>{formatClock(elapsed)}</ClockRing>
             )}
+            {step.tip && <p class="player-tip">{step.tip}</p>}
             {step.kind === 'set' && step.loggable && !step.bodyweight && (
               <div class="log-box">
                 {hint && <p class="hint">{hint.message}</p>}
-                <Stepper label="Carga desta série" unit="kg" step={1}
+                <Stepper label="Carga" unit="kg" step={1}
                   value={currentSet?.kg ?? defaultKg(step)}
                   onChange={(kg) => updateActive((x) => ({ ...x, sets: upsertSet(x.sets, step.exerciseId!, step.set!, { kg, reps: currentSet?.reps ?? step.repsDefault }) }))} />
               </div>
@@ -199,20 +229,22 @@ function StepView(props: { state: AppState; active: ActiveSession; steps: Step[]
       </main>
 
       <footer class="player-actions">
-        <button class="btn ghost" disabled={a.stepIndex === 0} onClick={() => goTo(a.stepIndex - 1)}>‹ Voltar</button>
+        <button class="icon-btn lg" disabled={a.stepIndex === 0} onClick={() => goTo(a.stepIndex - 1)} aria-label="Passo anterior">
+          <Icon name="prev" />
+        </button>
         <button class="btn primary big grow" onClick={next}>
-          {step.kind === 'set' && remaining === undefined ? 'Feito ✓' : step.kind === 'open' ? 'Terminei ✓' : 'Pular ›'}
+          {step.kind === 'set' && remaining === undefined ? 'Feito' : step.kind === 'open' ? 'Terminei' : 'Pular'}
         </button>
       </footer>
 
-      {paused && <div class="paused-badge">Pausado</div>}
+      {paused && <div class="paused-badge" role="status">Pausado</div>}
 
       {menu && (
-        <div class="sheet-backdrop" onClick={() => setMenu(false)}>
-          <div class="sheet" onClick={(e) => e.stopPropagation()}>
-            <h3>Sair do treino?</h3>
-            <button class="btn primary big" onClick={() => setMenu(false)}>Continuar treinando</button>
-            <button class="btn ghost big" onClick={() => updateActive((x) => ({ ...x, finished: true }))}>Encerrar e salvar o que fiz</button>
+        <div class={`sheet-backdrop${leaving ? ' leaving' : ''}`} onClick={closeMenu}>
+          <div class="sheet" role="dialog" aria-label="Sair do treino" onClick={(e) => e.stopPropagation()}>
+            <h3 class="sheet-title">Sair do treino?</h3>
+            <button class="btn primary big" onClick={closeMenu}>Continuar treinando</button>
+            <button class="btn quiet big" onClick={() => updateActive((x) => ({ ...x, finished: true }))}>Encerrar e salvar o que fiz</button>
             <button class="btn danger big" onClick={() => confirm('Descartar este treino?') && discardActive()}>Descartar treino</button>
           </div>
         </div>
@@ -264,8 +296,14 @@ function Finish(props: { state: AppState; active: ActiveSession; steps: Step[] }
 
   return (
     <div class="player tone-done finish">
-      <main class="player-main scroll">
-        <p class="player-kicker">{manual ? 'Registrar treino' : partial ? 'Treino encerrado' : 'Treino concluído! 🎉'}</p>
+      <main class="player-main scroll" key="finish">
+        {!manual && !partial && (
+          <svg class="done-check" viewBox="0 0 52 52" aria-hidden="true">
+            <circle cx="26" cy="26" r="24" />
+            <path d="m15 27 8 8 15-17" />
+          </svg>
+        )}
+        <p class="player-kicker">{manual ? 'Registrar treino' : partial ? 'Treino encerrado' : 'Treino concluído'}</p>
         <h1 class="player-title">{workoutName(a.workout)}</h1>
         {!manual && (
           <p class="player-detail">
@@ -275,7 +313,7 @@ function Finish(props: { state: AppState; active: ActiveSession; steps: Step[] }
 
         {lastStep && lastLogged && !manual && (
           <div class="log-box">
-            <p class="muted small">Última série — {lastStep.title}</p>
+            <p class="log-title">Última série · {lastStep.title}</p>
             <Stepper label="Reps" step={1} value={lastLogged.reps}
               onChange={(reps) => updateActive((x) => ({ ...x, sets: upsertSet(x.sets, lastStep.exerciseId!, lastStep.set!, { reps }) }))} />
           </div>
@@ -296,7 +334,7 @@ function Finish(props: { state: AppState; active: ActiveSession; steps: Step[] }
 
         {a.workout === 'tiros' && !isTest && (
           <div class="log-box">
-            <p class="muted small">Como foi o último tiro? (ajusta a velocidade a {fmtNum(a.tiroSpeed)} km/h)</p>
+            <p class="log-title">Como foi o último tiro? (ajusta a velocidade a {fmtNum(a.tiroSpeed)} km/h)</p>
             <Segmented
               value={tiroFeedback ?? 'ok'}
               options={[
@@ -310,11 +348,11 @@ function Finish(props: { state: AppState; active: ActiveSession; steps: Step[] }
         )}
 
         <div class="log-box">
-          <p class="muted small">Sensação</p>
+          <p class="log-title">Sensação</p>
           <div class="feelings">
             {FEELINGS.map((f) => (
               <button class={feeling === f.v ? 'on' : ''} onClick={() => setFeeling(f.v)} aria-label={f.l}>
-                <span>{f.e}</span>
+                <span>{f.v}</span>
                 <small>{f.l}</small>
               </button>
             ))}
@@ -326,9 +364,9 @@ function Finish(props: { state: AppState; active: ActiveSession; steps: Step[] }
       </main>
       <footer class="player-actions">
         {!manual && a.stepIndex < steps.length && (
-          <button class="btn ghost" onClick={() => updateActive((x) => ({ ...x, finished: false }))}>‹ Voltar</button>
+          <button class="icon-btn lg" onClick={() => updateActive((x) => ({ ...x, finished: false }))} aria-label="Voltar"><Icon name="prev" /></button>
         )}
-        {manual && <button class="btn ghost" onClick={discardActive}>Cancelar</button>}
+        {manual && <button class="btn quiet" onClick={discardActive}>Cancelar</button>}
         <button class="btn primary big grow" onClick={save}>Salvar</button>
       </footer>
     </div>

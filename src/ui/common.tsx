@@ -19,6 +19,7 @@ export function Stepper(props: {
           class="stepper-input"
           type="number"
           inputMode="decimal"
+          placeholder="0"
           value={props.value ?? ''}
           onInput={(e) => {
             const n = parseFloat((e.target as HTMLInputElement).value.replace(',', '.'));
@@ -72,9 +73,38 @@ export function Header(props: { title: string; subtitle?: string; right?: Compon
 }
 
 export const FEELINGS = [
-  { v: 1, e: '😫', l: 'Péssimo' },
-  { v: 2, e: '😕', l: 'Ruim' },
-  { v: 3, e: '😐', l: 'Ok' },
-  { v: 4, e: '🙂', l: 'Bom' },
-  { v: 5, e: '🔥', l: 'Ótimo' },
+  { v: 1, l: 'Péssimo' },
+  { v: 2, l: 'Ruim' },
+  { v: 3, l: 'Ok' },
+  { v: 4, l: 'Bom' },
+  { v: 5, l: 'Ótimo' },
 ] as const;
+
+const ICONS = {
+  today: <path d="M13 3 5 13.5h6L10 21l8-10.5h-6z" />,
+  week: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3v4M15.5 3v4" /></>,
+  report: <path d="M5 20V11M12 20V5M19 20v-6" />,
+  settings: <path d="M4 8h9M17 8h3M4 16h3M11 16h9M15 5.5v5M9 13.5v5" />,
+  close: <path d="m6 6 12 12M18 6 6 18" />,
+  pause: <path d="M9 5v14M15 5v14" />,
+  play: <path d="M8 5.5v13l10.5-6.5z" />,
+  back: <path d="m14.5 5-7 7 7 7" />,
+  prev: <path d="m15 5-7 7 7 7" />,
+  next: <path d="m9 5 7 7-7 7" />,
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  minus: <path d="M6 12h12" />,
+  dot: <circle cx="12" cy="12" r="1.5" />,
+} as const;
+
+export type IconName = keyof typeof ICONS;
+
+/** Ícones de traço (currentColor), todos no mesmo grid 24×24. */
+export function Icon(props: { name: IconName; size?: number }) {
+  const n = props.size ?? 22;
+  return (
+    <svg class="icon" width={n} height={n} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      {ICONS[props.name]}
+    </svg>
+  );
+}

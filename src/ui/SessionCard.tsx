@@ -4,6 +4,7 @@ import { buildSteps, estimateMinutes, exercisesFor, fmtNum, repsLabel, setsFor }
 import type { SessionLog, Settings } from '../store/types';
 import { startSession, skipSession, deleteLog, type SessionRef } from './actions';
 import { useState } from 'preact/hooks';
+import { Icon } from './common';
 
 export function SessionCard(props: {
   ref_: SessionRef;
@@ -56,7 +57,7 @@ export function SessionCard(props: {
         <span class="slot">{SLOT_LABEL[plan.slot]}{plan.optional ? ' · opcional' : ''}</span>
         <span class="muted">~{minutes} min</span>
       </div>
-      <h3>{title}</h3>
+      <h3 class="session-title">{title}</h3>
       <p class="muted small">{subtitle}</p>
       {lines.length > 0 && (
         <ul class="exercise-list">
@@ -73,14 +74,14 @@ export function SessionCard(props: {
           )}
           <button class="btn primary big" onClick={() => startSession(ref_, { short })}>Começar</button>
           <div class="row gap">
-            <button class="btn ghost" onClick={() => startSession(ref_, { short, manual: true })}>Já fiz, registrar</button>
-            {plan.optional && <button class="btn ghost" onClick={() => skipSession(ref_)}>{DAY_TYPES[ref_.dayType].id === 'descanso' ? 'Pular' : 'Descansar hoje'}</button>}
+            <button class="btn quiet" onClick={() => startSession(ref_, { short, manual: true })}>Já fiz, registrar</button>
+            {plan.optional && <button class="btn quiet" onClick={() => skipSession(ref_)}>{DAY_TYPES[ref_.dayType].id === 'descanso' ? 'Pular' : 'Descansar hoje'}</button>}
           </div>
         </>
       )}
       {log && (
         <div class="row between">
-          <span class="badge">{log.skipped ? '➖ Descansou' : log.partial ? '◐ Parcial' : '✅ Feito'}{log.runKm ? ` · ${fmtNum(log.runKm)} km` : ''}</span>
+          <span class="badge"><Icon name={log.skipped ? 'minus' : 'check'} size={16} />{log.skipped ? 'Descansou' : log.partial ? 'Parcial' : 'Feito'}{log.runKm ? ` · ${fmtNum(log.runKm)} km` : ''}</span>
           <button class="btn link" onClick={() => confirm('Desfazer este registro?') && deleteLog(log.id)}>Desfazer</button>
         </div>
       )}

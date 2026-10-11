@@ -5,7 +5,7 @@ import { buildReport, reportText } from '../engine/report';
 import { fmtNum } from '../engine/steps';
 import { downloadFile, shareText } from '../lib/share';
 import type { AppState } from '../store/types';
-import { Card, Header } from './common';
+import { Card, Header, Icon } from './common';
 
 export function ReportScreen(props: { state: AppState }) {
   const [monday, setMonday] = useState(mondayOf(todayISO()));
@@ -27,8 +27,8 @@ export function ReportScreen(props: { state: AppState }) {
         subtitle={`${formatShort(r.monday)} a ${formatShort(r.sunday)} · semana ${r.cycleWeek} de 8`}
         right={
           <div class="row">
-            <button class="btn ghost small" onClick={() => setMonday(addDays(monday, -7))} aria-label="Semana anterior">‹</button>
-            <button class="btn ghost small" onClick={() => setMonday(addDays(monday, 7))} aria-label="Próxima semana">›</button>
+            <button class="icon-btn" onClick={() => setMonday(addDays(monday, -7))} aria-label="Semana anterior"><Icon name="prev" size={18} /></button>
+            <button class="icon-btn" onClick={() => setMonday(addDays(monday, 7))} aria-label="Próxima semana"><Icon name="next" size={18} /></button>
           </div>
         }
       />
@@ -51,7 +51,7 @@ export function ReportScreen(props: { state: AppState }) {
                 <br />
                 {d.sessions.map(({ plan, log }) => (
                   <span class={`chip ${log ? (log.skipped ? 'skipped' : 'done') : plan.optional ? 'opt' : 'miss'}`}>
-                    {log ? (log.skipped ? '➖' : log.partial ? '◐' : '✓') : plan.optional ? '·' : '✕'} {workoutName(plan.workout)}
+                    {log ? (log.skipped ? '–' : log.partial ? '½' : '✓') : plan.optional ? '·' : '✕'} {workoutName(plan.workout)}
                   </span>
                 ))}
               </span>
@@ -62,14 +62,14 @@ export function ReportScreen(props: { state: AppState }) {
 
       {r.records.length > 0 && (
         <Card>
-          <h3>🏆 Recordes</h3>
+          <h3>Recordes</h3>
           <ul class="rules">{r.records.map((x) => <li>{x}</li>)}</ul>
         </Card>
       )}
 
       {r.suggestions.length > 0 && (
         <Card>
-          <h3>📈 Progressão sugerida</h3>
+          <h3>Progressão sugerida</h3>
           <ul class="rules">{r.suggestions.map((x) => <li>{x}</li>)}</ul>
         </Card>
       )}
@@ -82,12 +82,12 @@ export function ReportScreen(props: { state: AppState }) {
           <li><span>Musculação</span><strong>{r.next.prog.strength}</strong></li>
         </ul>
         {r.tiroSpeedChanged && <p class="muted small">Velocidade dos tiros ajustada pelo seu feedback.</p>}
-        {r.next.runIncreases && <p class="warn">⚠️ A corrida aumenta: não suba carga de perna.</p>}
+        {r.next.runIncreases && <p class="warn">A corrida aumenta: não suba carga de perna.</p>}
       </Card>
 
       <div class="share-actions">
-        <button class="btn primary big" onClick={send}>📤 Enviar relatório</button>
-        <button class="btn ghost" onClick={() => downloadFile(`relatorio-${r.monday}.md`, text, 'text/markdown')}>Baixar .md</button>
+        <button class="btn primary big" onClick={send}>Enviar relatório</button>
+        <button class="btn quiet" onClick={() => downloadFile(`relatorio-${r.monday}.md`, text, 'text/markdown')}>Baixar .md</button>
       </div>
       {toast && <div class="toast">{toast}</div>}
 

@@ -7,7 +7,7 @@ import { locationsFor } from '../store/storage';
 import type { AppState } from '../store/types';
 import { useState } from 'preact/hooks';
 import { setLocation } from './actions';
-import { Card, Header, Segmented } from './common';
+import { Card, Header, Icon, Segmented } from './common';
 
 export function WeekScreen(props: { state: AppState }) {
   const { state } = props;
@@ -25,8 +25,8 @@ export function WeekScreen(props: { state: AppState }) {
         subtitle={`${formatShort(monday)} a ${formatShort(addDays(monday, 6))} · semana ${cw} de 8${p.label ? ` (${p.label})` : ''}`}
         right={
           <div class="row">
-            <button class="btn ghost small" onClick={() => setMonday(addDays(monday, -7))} aria-label="Semana anterior">‹</button>
-            <button class="btn ghost small" onClick={() => setMonday(addDays(monday, 7))} aria-label="Próxima semana">›</button>
+            <button class="icon-btn" onClick={() => setMonday(addDays(monday, -7))} aria-label="Semana anterior"><Icon name="prev" size={18} /></button>
+            <button class="icon-btn" onClick={() => setMonday(addDays(monday, 7))} aria-label="Próxima semana"><Icon name="next" size={18} /></button>
           </div>
         }
       />
@@ -41,7 +41,7 @@ export function WeekScreen(props: { state: AppState }) {
               <Segmented
                 small
                 value={locations[d]}
-                options={[{ value: 'casa', label: '🏠 Casa' }, { value: 'escritorio', label: '🏢 Escr.' }]}
+                options={[{ value: 'casa', label: 'Casa' }, { value: 'escritorio', label: 'Escritório' }]}
                 onChange={(v) => setLocation(monday, d, v)}
               />
             </div>

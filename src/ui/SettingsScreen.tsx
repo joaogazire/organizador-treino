@@ -62,8 +62,8 @@ export function SettingsScreen(props: { state: AppState }) {
         <h3>Seus dados</h3>
         <p class="muted small">Tudo fica salvo só neste celular ({state.logs.length} treinos registrados). Faça backup de vez em quando.</p>
         <div class="row gap wrap">
-          <button class="btn ghost" onClick={() => downloadFile(`coach-backup-${todayISO()}.json`, exportBackup(state), 'application/json')}>Exportar backup</button>
-          <label class="btn ghost">
+          <button class="btn quiet" onClick={() => downloadFile(`coach-backup-${todayISO()}.json`, exportBackup(state), 'application/json')}>Exportar backup</button>
+          <label class="btn quiet">
             Importar backup
             <input type="file" accept="application/json,.json" hidden onChange={onImport} />
           </label>

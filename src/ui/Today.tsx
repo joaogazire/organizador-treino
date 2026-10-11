@@ -11,7 +11,7 @@ import { fmtNum } from '../engine/steps';
 import { locationsFor } from '../store/storage';
 import type { AppState } from '../store/types';
 import { setLocation } from './actions';
-import { Segmented } from './common';
+import { Icon, Segmented } from './common';
 import { SessionCard } from './SessionCard';
 
 export function Today(props: { state: AppState; onReport: () => void }) {
@@ -44,11 +44,11 @@ export function Today(props: { state: AppState; onReport: () => void }) {
           <p class="eyebrow">Semana {cw} de 8{prog.label ? ` · ${prog.label}` : ''}</p>
           <h1>{date === today ? 'Hoje' : WEEKDAY_LONG[wd]} <span class="muted">{formatShort(date)}</span></h1>
         </div>
-        {date !== today && <button class="btn ghost small" onClick={() => setDate(today)}>Hoje</button>}
+        {date !== today && <button class="btn quiet small" onClick={() => setDate(today)}>Hoje</button>}
       </header>
 
       <nav class="day-strip" aria-label="Dias da semana">
-        <button class="strip-arrow" onClick={() => setDate(addDays(date, -7))} aria-label="Semana anterior">‹</button>
+        <button class="strip-arrow" onClick={() => setDate(addDays(date, -7))} aria-label="Semana anterior"><Icon name="prev" size={18} /></button>
         {dates.map((d, i) => {
           const k = WEEKDAYS[i];
           return (
@@ -62,15 +62,17 @@ export function Today(props: { state: AppState; onReport: () => void }) {
             </button>
           );
         })}
-        <button class="strip-arrow" onClick={() => setDate(addDays(date, 7))} aria-label="Próxima semana">›</button>
+        <button class="strip-arrow" onClick={() => setDate(addDays(date, 7))} aria-label="Próxima semana"><Icon name="next" size={18} /></button>
       </nav>
 
       {showReportBanner && (
         <button class="banner" onClick={props.onReport}>
-          📊 Fim de semana! Veja e envie o relatório da semana →
+          <span>Fim de semana. Veja e envie o relatório da semana</span>
+          <Icon name="next" size={18} />
         </button>
       )}
 
+      <div class="day-body" key={date}>
       <div class="day-type">
         <div>
           <p class="eyebrow">Treino do dia</p>
@@ -81,7 +83,7 @@ export function Today(props: { state: AppState; onReport: () => void }) {
           <Segmented
             small
             value={loc}
-            options={[{ value: 'casa', label: '🏠 Casa' }, { value: 'escritorio', label: '🏢 Escritório' }]}
+            options={[{ value: 'casa', label: 'Casa' }, { value: 'escritorio', label: 'Escritório' }]}
             onChange={(v) => setLocation(date, wd as WorkdayKey, v)}
           />
         )}
@@ -98,6 +100,7 @@ export function Today(props: { state: AppState; onReport: () => void }) {
           officeDay={loc === 'escritorio'}
         />
       ))}
+      </div>
 
       <p class="muted small center">
         Meta da semana: {fmtNum(prog.totalKm)} km · Musculação: {prog.strength}
