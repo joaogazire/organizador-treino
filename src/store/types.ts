@@ -59,7 +59,12 @@ export interface ActiveSession {
   extraSec: number;
   /** Se pausado: segundos já decorridos no passo atual. */
   pausedElapsed?: number;
+  /** Musculação: séries marcadas (sem carga/reps; a carga entra ao finalizar). */
   sets: SetLog[];
+  /** Musculação: carga editada nesta sessão, por exercício (vence a da última sessão). */
+  loads?: Record<string, number>;
+  /** Musculação: fim do descanso em andamento (ms). */
+  restUntil?: number;
   /** Velocidades usadas ao montar os passos (para não mudar no meio do treino). */
   tiroSpeed: number;
   easySpeed: number;

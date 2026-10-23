@@ -1,6 +1,6 @@
 // Service worker: app abre offline (academia com sinal ruim).
 // Página: network-first (pega versão nova quando há rede). Assets: stale-while-revalidate.
-const CACHE = 'coach-v1';
+const CACHE = 'coach-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon.svg'])));

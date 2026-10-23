@@ -9,6 +9,7 @@ import { keepAwake, releaseAwake } from '../lib/wakelock';
 import type { ActiveSession, AppState, SessionLog, SetLog } from '../store/types';
 import { discardActive, saveSession, updateActive } from './actions';
 import { FEELINGS, Icon, Segmented, Stepper } from './common';
+import { Checklist } from './Checklist';
 import { ExerciseDemo } from './demo/ExerciseDemo';
 
 const exerciseById = new Map(Object.values(STRENGTH).flatMap((w) => w.exercises.map((e) => [e.id, e] as const)));
@@ -55,7 +56,14 @@ function ClockRing(props: { ratio?: number; final?: number; children: string; sm
   );
 }
 
+/** Musculação vira checklist (sem passo a passo); corrida, mobilidade e registro manual seguem no player. */
 export function Player(props: { state: AppState }) {
+  const a = props.state.active!;
+  if (isStrength(a.workout) && !a.manual) return <Checklist state={props.state} />;
+  return <StepPlayer state={props.state} />;
+}
+
+function StepPlayer(props: { state: AppState }) {
   const { state } = props;
   const a = state.active!;
   const steps = useMemo(

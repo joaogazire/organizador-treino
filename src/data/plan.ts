@@ -114,6 +114,8 @@ export interface Exercise {
   /** Exercício só de peso corporal / sem carga a registrar. */
   bodyweight?: boolean;
   tip?: string;
+  /** GIF da execução: caminho em `public/` (ex.: 'gifs/supino-reto-barra.gif') ou URL. Vazio = animação SVG. */
+  gif?: string;
 }
 
 export interface StrengthWorkout {
