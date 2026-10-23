@@ -302,6 +302,6 @@ p { margin: 4px 0; }
 .cl-sheet { max-height: 92dvh; overflow-y: auto; }
 .cl-sheet .sheet-title { margin-bottom: 0; }
 .media { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: var(--radius); background: var(--surface-2); overflow: hidden; display: grid; place-items: center; flex: none; }
-.media img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.media img { width: 100%; height: 100%; object-fit: contain; }
 .media .dm-root { opacity: 1; --dm-op: 1; padding-top: 0; align-items: center; color: var(--accent); }
 .media .dm-root svg { width: 78%; }

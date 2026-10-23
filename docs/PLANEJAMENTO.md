@@ -193,3 +193,7 @@ Como o escopo inicial é pequeno, o "tech lead" (eu) quebrou o trabalho em frent
 | Áudio bloqueado no iOS | Áudio é "destravado" no toque do botão Começar |
 | `navigator.vibrate` não existe no iOS | Vibração é opcional; o bipe cobre |
 | Envio "automático" impossível sem servidor | v0.1 usa compartilhamento nativo; automação fica para a v0.4 |
+
+## Créditos dos GIFs de execução
+
+`public/gifs/*.gif` foram montados a partir das fotos (posição inicial e final) do [free-exercise-db](https://github.com/yuhonas/free-exercise-db), licença Unlicense (domínio público). Cada GIF alterna as duas posições com transição suave.
