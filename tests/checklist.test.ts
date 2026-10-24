@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STRENGTH } from '../src/data/plan';
-import { buildSetLogs, checklistFor, lastKgFor, loadFor, restSecFor } from '../src/engine/checklist';
+import { buildSetLogs, checklistFor, lastKgFor, loadFor, nextOpenSet, restSecFor } from '../src/engine/checklist';
 import { loadHint } from '../src/engine/progression';
 import type { SessionLog } from '../src/store/types';
 
@@ -93,5 +93,27 @@ describe('restSecFor', () => {
     const s = { restCompoundSec: 150, restIsolationSec: 75 };
     expect(restSecFor(ex('supino-reto-barra'), s)).toBe(150);
     expect(restSecFor(ex('face-pull'), s)).toBe(75);
+  });
+});
+
+describe('nextOpenSet', () => {
+  const items = [{ exercise: ex('supino-reto-barra'), sets: 2 }, { exercise: ex('remada-curvada'), sets: 2 }];
+
+  it('começa na série 1 do primeiro exercício', () => {
+    expect(nextOpenSet(items, [])).toEqual({ exerciseId: 'supino-reto-barra', set: 1 });
+  });
+
+  it('segue para a primeira série livre, mesmo com buraco', () => {
+    expect(nextOpenSet(items, [{ exerciseId: 'supino-reto-barra', set: 2 }])).toEqual({ exerciseId: 'supino-reto-barra', set: 1 });
+  });
+
+  it('passa ao próximo exercício quando o atual está completo', () => {
+    const marked = [{ exerciseId: 'supino-reto-barra', set: 1 }, { exerciseId: 'supino-reto-barra', set: 2 }];
+    expect(nextOpenSet(items, marked)).toEqual({ exerciseId: 'remada-curvada', set: 1 });
+  });
+
+  it('tudo feito → undefined', () => {
+    const marked = items.flatMap((i) => [1, 2].map((set) => ({ exerciseId: i.exercise.id, set })));
+    expect(nextOpenSet(items, marked)).toBeUndefined();
   });
 });
