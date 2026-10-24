@@ -46,3 +46,13 @@ export function restSecFor(e: Exercise, s: Pick<Settings, 'restCompoundSec' | 'r
 }
 
 export { hasLoad };
+
+/** Primeira série ainda não marcada, na ordem do treino; undefined quando tudo foi feito. */
+export function nextOpenSet(items: ChecklistItem[], marked: Pick<SetLog, 'exerciseId' | 'set'>[]): { exerciseId: string; set: number } | undefined {
+  for (const { exercise, sets } of items) {
+    for (let set = 1; set <= sets; set++) {
+      if (!marked.some((m) => m.exerciseId === exercise.id && m.set === set)) return { exerciseId: exercise.id, set };
+    }
+  }
+  return undefined;
+}

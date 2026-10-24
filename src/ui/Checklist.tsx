@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { workoutName } from '../data/plan';
-import { buildSetLogs, checklistFor, hasLoad, loadFor, restSecFor, type ChecklistItem } from '../engine/checklist';
+import { buildSetLogs, checklistFor, hasLoad, loadFor, nextOpenSet, restSecFor, type ChecklistItem } from '../engine/checklist';
 import { repsLabel } from '../engine/steps';
 import { fmtKg } from '../engine/progression';
 import { beep, vibrate } from '../lib/feedback';
@@ -39,6 +39,15 @@ export function Checklist(props: { state: AppState }) {
   const total = items.reduce((n, i) => n + i.sets, 0);
   const done = a.sets.length;
 
+  const cur = nextOpenSet(items, a.sets)?.exerciseId;
+  const allDone = total > 0 && done >= total;
+  const curRow = useRef<HTMLElement | null>(null);
+
+  // O exercício da vez sobe sozinho para o centro da lista.
+  useEffect(() => {
+    curRow.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [cur]);
+
   const toggle = (item: ChecklistItem, set: number) => {
     const id = item.exercise.id;
     const wasDone = isDone(id, set);
@@ -57,6 +66,21 @@ export function Checklist(props: { state: AppState }) {
     if (state.settings.vibrate) vibrate([200, 100, 200]);
     updateActive((x) => ({ ...x, restUntil: undefined }));
   }, [restLeft !== undefined && restLeft <= 0]);
+
+  // Tudo marcado: salva sozinho em 4 s, com chance de desfazer.
+  useEffect(() => {
+    if (!allDone) return;
+    const id = setTimeout(finish, 4000);
+    return () => clearTimeout(id);
+  }, [allDone]);
+
+  // Aviso tátil 3 s antes do descanso acabar, para não precisar olhar a tela.
+  const warn = restLeft !== undefined && restLeft > 0 && restLeft <= 3;
+  useEffect(() => {
+    if (warn && state.settings.vibrate) vibrate(60);
+  }, [warn]);
+
+  const undoLast = () => updateActive((x) => ({ ...x, sets: x.sets.slice(0, -1), restUntil: undefined }));
 
   const finish = () => {
     if (!done) {
@@ -100,14 +124,14 @@ export function Checklist(props: { state: AppState }) {
           const marks = Array.from({ length: item.sets }, (_, i) => isDone(e.id, i + 1));
           const all = marks.every(Boolean);
           return (
-            <section class={`cl-item${all ? ' all' : ''}`} key={e.id}>
-              <button class="cl-info" onClick={() => setOpen(item)}>
-                <span class="cl-name">{e.name}</span>
-                <span class="cl-meta">
+            <section class={`cl-item${all ? ' all' : ''}${cur === e.id ? ' cur' : ''}`} key={e.id} ref={cur === e.id ? curRow : undefined}>
+              <div class="cl-info">
+                <button class="cl-name" onClick={() => (all ? setOpen(item) : toggle(item, marks.indexOf(false) + 1))} aria-label={`Marcar próxima série de ${e.name}`}>{e.name}</button>
+                <button class="cl-meta" onClick={() => setOpen(item)} aria-label={`Detalhes de ${e.name}`}>
                   {item.sets} × {repsLabel(e)}
-                  {hasLoad(e) && <> · <b class={kg === undefined ? 'cl-noload' : ''}>{kg === undefined ? 'definir carga' : fmtKg(kg)}</b></>}
-                </span>
-              </button>
+                  {hasLoad(e) && <> · <b class={kg === undefined ? 'cl-noload' : ''}>{kg === undefined ? 'carga?' : fmtKg(kg)}</b></>}
+                </button>
+              </div>
               <div class="cl-sets">
                 {marks.map((on, i) => (
                   <button class={`cl-set${on ? ' on' : ''}`} aria-pressed={on} aria-label={`Série ${i + 1}`} onClick={() => toggle(item, i + 1)}>
@@ -127,7 +151,14 @@ export function Checklist(props: { state: AppState }) {
       )}
 
       <footer class="player-actions">
-        <button class="btn primary big grow" onClick={finish}>Finalizar treino</button>
+        {allDone ? (
+          <>
+            <button class="btn primary big grow saving" onClick={finish}>Salvando…</button>
+            <button class="icon-btn lg" onClick={undoLast} aria-label="Desfazer última série"><Icon name="back" /></button>
+          </>
+        ) : (
+          <button class="btn big grow" onClick={finish}>Finalizar treino</button>
+        )}
       </footer>
 
       {open && (
