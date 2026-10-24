@@ -1,13 +1,13 @@
 import { DAY_TYPES, GOLDEN_RULES, workoutName } from '../data/plan';
 import { cycleWeek, progressionFor } from '../engine/cycle';
-import { WEEKDAYS, WEEKDAY_LONG, WORKDAYS, addDays, formatShort, mondayOf, todayISO } from '../engine/dates';
+import { WEEKDAYS, WEEKDAY_SHORT, WORKDAYS, addDays, formatShort, mondayOf, todayISO, type WorkdayKey } from '../engine/dates';
 import { assignWeek, countCasa } from '../engine/schedule';
 import { fmtNum } from '../engine/steps';
 import { locationsFor } from '../store/storage';
 import type { AppState } from '../store/types';
 import { useState } from 'preact/hooks';
 import { setLocation } from './actions';
-import { Card, Header, Icon, Segmented } from './common';
+import { Header, Icon, Sheet } from './common';
 
 export function WeekScreen(props: { state: AppState }) {
   const { state } = props;
@@ -17,6 +17,8 @@ export function WeekScreen(props: { state: AppState }) {
   const cw = cycleWeek(state.settings.cycleStart, monday);
   const p = progressionFor(cw);
   const casas = countCasa(locations);
+
+  const [sheet, setSheet] = useState<'metas' | 'regras'>();
 
   return (
     <div class="screen">
@@ -31,58 +33,50 @@ export function WeekScreen(props: { state: AppState }) {
         }
       />
 
-      <Card>
-        <h3>Onde você vai estar?</h3>
-        <p class="muted small">Padrão: 2 dias em casa e 3 no escritório. {casas !== 2 && <strong>Semana fora do padrão ({casas} em casa) — regras especiais aplicadas.</strong>}</p>
-        <div class="loc-list">
-          {WORKDAYS.map((d) => (
-            <div class="loc-row">
-              <span>{WEEKDAY_LONG[d]}</span>
-              <Segmented
-                small
-                value={locations[d]}
-                options={[{ value: 'casa', label: 'Casa' }, { value: 'escritorio', label: 'Escritório' }]}
-                onChange={(v) => setLocation(monday, d, v)}
-              />
-            </div>
-          ))}
-        </div>
-      </Card>
+      <ul class="week-list" key={monday}>
+        {WEEKDAYS.map((d, i) => {
+          const t = DAY_TYPES[schedule[d]];
+          const work = (WORKDAYS as string[]).includes(d);
+          const loc = work ? locations[d as WorkdayKey] : undefined;
+          return (
+            <li style={{ '--n': i }}>
+              <span class="plan-day">{WEEKDAY_SHORT[d]}</span>
+              <span class="week-what">
+                <strong>{t.name}</strong>
+                <span class="muted small">{t.sessions.map((x) => workoutName(x.workout) + (x.optional ? ' (opc.)' : '')).join(' + ')}</span>
+              </span>
+              {loc && (
+                <button class={`loc-btn ${loc}`} onClick={() => setLocation(monday, d as WorkdayKey, loc === 'casa' ? 'escritorio' : 'casa')}>
+                  {loc === 'casa' ? 'Casa' : 'Escrit.'}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {casas !== 2 && <p class="warn small center">Fora do padrão ({casas} em casa): regras especiais aplicadas.</p>}
 
-      <Card>
-        <h3>Plano da semana</h3>
-        <ul class="plan-list">
-          {WEEKDAYS.map((d) => {
-            const t = DAY_TYPES[schedule[d]];
-            return (
-              <li>
-                <span class="plan-day">{WEEKDAY_LONG[d]}</span>
-                <span>
-                  <strong>{t.name}</strong>
-                  <br />
-                  <span class="muted small">{t.sessions.map((s) => workoutName(s.workout) + (s.optional ? ' (opc.)' : '')).join(' + ')}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </Card>
+      <div class="row gap week-actions">
+        <button class="btn grow" onClick={() => setSheet('metas')}>Metas</button>
+        <button class="btn grow" onClick={() => setSheet('regras')}>Regras</button>
+      </div>
 
-      <Card>
-        <h3>Metas da semana {cw}</h3>
-        <ul class="kv">
-          <li><span>Tiros</span><strong>{p.tiros ? `${p.tiros.reps} × ${p.tiros.meters} m` : 'Teste 5 km'}</strong></li>
-          <li><span>Rodagem leve</span><strong>{fmtNum(p.rodagemKm)} km</strong></li>
-          <li><span>Longo</span><strong>{fmtNum(p.longoKm)} km</strong></li>
-          <li><span>Total aprox.</span><strong>{fmtNum(p.totalKm)} km</strong></li>
-          <li><span>Musculação</span><strong>{p.strength}</strong></li>
-        </ul>
-      </Card>
-
-      <Card>
-        <h3>Regras de ouro</h3>
-        <ul class="rules">{GOLDEN_RULES.map((r) => <li>{r}</li>)}</ul>
-      </Card>
+      {sheet === 'metas' && (
+        <Sheet title={`Metas da semana ${cw}`} onClose={() => setSheet(undefined)}>
+          <ul class="kv">
+            <li><span>Tiros</span><strong>{p.tiros ? `${p.tiros.reps} × ${p.tiros.meters} m` : 'Teste 5 km'}</strong></li>
+            <li><span>Rodagem leve</span><strong>{fmtNum(p.rodagemKm)} km</strong></li>
+            <li><span>Longo</span><strong>{fmtNum(p.longoKm)} km</strong></li>
+            <li><span>Total aprox.</span><strong>{fmtNum(p.totalKm)} km</strong></li>
+            <li><span>Musculação</span><strong>{p.strength}</strong></li>
+          </ul>
+        </Sheet>
+      )}
+      {sheet === 'regras' && (
+        <Sheet title="Regras de ouro" onClose={() => setSheet(undefined)}>
+          <ul class="rules">{GOLDEN_RULES.map((r) => <li>{r}</li>)}</ul>
+        </Sheet>
+      )}
     </div>
   );
 }

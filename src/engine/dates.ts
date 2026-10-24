@@ -65,3 +65,9 @@ export function formatShort(iso: string): string {
   const d = fromISO(iso);
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`;
 }
+
+/** Datas corridas da segunda de `before` semanas antes ao domingo de `after` semanas depois da data. */
+export function daysAround(iso: string, before: number, after: number): string[] {
+  const start = addDays(mondayOf(iso), -7 * before);
+  return Array.from({ length: 7 * (before + after + 1) }, (_, i) => addDays(start, i));
+}

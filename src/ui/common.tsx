@@ -1,4 +1,5 @@
 import type { ComponentChildren } from 'preact';
+import { useState } from 'preact/hooks';
 
 export function Stepper(props: {
   label: string;
@@ -94,6 +95,7 @@ const ICONS = {
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
   minus: <path d="M6 12h12" />,
   dot: <circle cx="12" cy="12" r="1.5" />,
+  more: <><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></>,
 } as const;
 
 export type IconName = keyof typeof ICONS;
@@ -106,5 +108,43 @@ export function Icon(props: { name: IconName; size?: number }) {
       stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       {ICONS[props.name]}
     </svg>
+  );
+}
+
+/** Folha de baixo com animação de saída. `children` pode receber `close` para fechar com animação. */
+export function Sheet(props: { title?: string; onClose: () => void; children: ComponentChildren | ((close: () => void) => ComponentChildren) }) {
+  const [leaving, setLeaving] = useState(false);
+  const close = () => {
+    setLeaving(true);
+    setTimeout(props.onClose, 180);
+  };
+  return (
+    <div class={`sheet-backdrop${leaving ? ' leaving' : ''}`} onClick={close}>
+      <div class="sheet" role="dialog" aria-label={props.title} onClick={(e) => e.stopPropagation()}>
+        {props.title && <h3 class="sheet-title">{props.title}</h3>}
+        {typeof props.children === 'function' ? props.children(close) : props.children}
+      </div>
+    </div>
+  );
+}
+
+/** Linha tocável de menu (título + valor + seta). */
+export function MenuRow(props: { label: string; value?: string; onClick: () => void }) {
+  return (
+    <button class="menu-row" onClick={props.onClick}>
+      <span>{props.label}</span>
+      <span class="muted">{props.value}</span>
+      <Icon name="next" size={16} />
+    </button>
+  );
+}
+
+/** Interruptor (substitui checkbox nativo). */
+export function Switch(props: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button class="menu-row switch-row" role="switch" aria-checked={props.checked} onClick={() => props.onChange(!props.checked)}>
+      <span>{props.label}</span>
+      <span class={`switch${props.checked ? ' on' : ''}`}><i /></span>
+    </button>
   );
 }

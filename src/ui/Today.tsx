@@ -1,8 +1,8 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { DAY_TYPES } from '../data/plan';
 import { cycleWeek, progressionFor } from '../engine/cycle';
 import {
-  WEEKDAYS, WEEKDAY_LONG, WEEKDAY_SHORT, WORKDAYS, addDays, formatShort, fromISO, mondayOf, todayISO, weekDates, weekdayKey,
+  WEEKDAY_LONG, WEEKDAY_SHORT, WORKDAYS, addDays, daysAround, formatShort, fromISO, mondayOf, todayISO, weekdayKey,
   type WorkdayKey,
 } from '../engine/dates';
 import { findLog } from '../engine/report';
@@ -27,14 +27,45 @@ export function Today(props: { state: AppState; onReport: () => void }) {
   const dayType = DAY_TYPES[schedule[wd]];
   const isWorkday = (WORKDAYS as string[]).includes(wd);
   const loc = isWorkday ? locations[wd as WorkdayKey] : undefined;
-  const dates = weekDates(monday);
+  const days = useMemo(() => daysAround(today, 8, 8), [today]);
+  const [dir, setDir] = useState<'l' | 'r'>('r');
+  const strip = useRef<HTMLElement | null>(null);
+  const first = useRef(true);
   const showReportBanner = weekdayKey(today) === 'dom' && mondayOf(today) === monday;
 
+  const weeks = new Map<string, ReturnType<typeof assignWeek>>();
   const dayDone = (d: string) => {
-    const t = DAY_TYPES[schedule[weekdayKey(d)]];
+    const m = mondayOf(d);
+    if (!weeks.has(m)) weeks.set(m, assignWeek(locationsFor(state, m)));
+    const t = DAY_TYPES[weeks.get(m)![weekdayKey(d)]];
     const required = t.sessions.filter((s) => !s.optional);
     if (!required.length) return false;
     return required.every((s) => findLog(state.logs, d, s));
+  };
+
+  const pick = (d: string) => {
+    if (d === date) return;
+    setDir(d > date ? 'r' : 'l');
+    setDate(d);
+  };
+
+  // A barra de dias acompanha a seleção (sem animação na primeira vez).
+  useEffect(() => {
+    strip.current?.querySelector('.day-chip.on')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: first.current ? 'auto' : 'smooth' });
+    first.current = false;
+  }, [date]);
+
+  // Arrastar o corpo do dia para os lados troca de dia.
+  const touch = useRef<{ x: number; y: number } | undefined>(undefined);
+  const onTouchEnd = (e: TouchEvent) => {
+    const t = touch.current;
+    touch.current = undefined;
+    if (!t) return;
+    const dx = e.changedTouches[0].clientX - t.x;
+    const dy = e.changedTouches[0].clientY - t.y;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const next = addDays(date, dx < 0 ? 1 : -1);
+    if (days.includes(next)) pick(next);
   };
 
   return (
@@ -47,14 +78,13 @@ export function Today(props: { state: AppState; onReport: () => void }) {
         {date !== today && <button class="btn quiet small" onClick={() => setDate(today)}>Hoje</button>}
       </header>
 
-      <nav class="day-strip" aria-label="Dias da semana">
-        <button class="strip-arrow" onClick={() => setDate(addDays(date, -7))} aria-label="Semana anterior"><Icon name="prev" size={18} /></button>
-        {dates.map((d, i) => {
-          const k = WEEKDAYS[i];
+      <nav class="day-strip" aria-label="Dias" ref={strip}>
+        {days.map((d) => {
+          const k = weekdayKey(d);
           return (
             <button
-              class={`day-chip${d === date ? ' on' : ''}${d === today ? ' today' : ''}${dayDone(d) ? ' done' : ''}`}
-              onClick={() => setDate(d)}
+              class={`day-chip${d === date ? ' on' : ''}${d === today ? ' today' : ''}${dayDone(d) ? ' done' : ''}${k === 'seg' ? ' mon' : ''}`}
+              onClick={() => pick(d)}
             >
               <span class="day-chip-name">{WEEKDAY_SHORT[k]}</span>
               <span class="day-chip-num">{fromISO(d).getDate()}</span>
@@ -62,7 +92,6 @@ export function Today(props: { state: AppState; onReport: () => void }) {
             </button>
           );
         })}
-        <button class="strip-arrow" onClick={() => setDate(addDays(date, 7))} aria-label="Próxima semana"><Icon name="next" size={18} /></button>
       </nav>
 
       {showReportBanner && (
@@ -72,7 +101,9 @@ export function Today(props: { state: AppState; onReport: () => void }) {
         </button>
       )}
 
-      <div class="day-body" key={date}>
+      <div class={`day-body from-${dir}`} key={date}
+        onTouchStart={(e) => { touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }}
+        onTouchEnd={onTouchEnd}>
       <div class="day-type">
         <div>
           <p class="eyebrow">Treino do dia</p>
@@ -102,7 +133,7 @@ export function Today(props: { state: AppState; onReport: () => void }) {
       ))}
       </div>
 
-      <p class="muted small center">
+      <p class="muted small center today-foot">
         Meta da semana: {fmtNum(prog.totalKm)} km · Musculação: {prog.strength}
       </p>
     </div>

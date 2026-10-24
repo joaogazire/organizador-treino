@@ -20,19 +20,28 @@ const TABS: { id: Tab; label: string; icon: IconName }[] = [
 export function App() {
   const state = useStore();
   const [tab, setTab] = useState<Tab>('hoje');
+  const [dir, setDir] = useState<'l' | 'r'>('r');
+  const idx = TABS.findIndex((t) => t.id === tab);
+  const go = (id: Tab) => {
+    setDir(TABS.findIndex((t) => t.id === id) > idx ? 'r' : 'l');
+    setTab(id);
+  };
 
   if (!state.onboarded) return <Onboarding state={state} />;
   if (state.active) return <Player state={state} />;
 
   return (
     <div class="app">
-      {tab === 'hoje' && <Today state={state} onReport={() => setTab('relatorio')} />}
-      {tab === 'semana' && <WeekScreen state={state} />}
-      {tab === 'relatorio' && <ReportScreen state={state} />}
-      {tab === 'ajustes' && <SettingsScreen state={state} />}
-      <nav class="tabbar">
+      <div class={`stage from-${dir}`} key={tab}>
+        {tab === 'hoje' && <Today state={state} onReport={() => go('relatorio')} />}
+        {tab === 'semana' && <WeekScreen state={state} />}
+        {tab === 'relatorio' && <ReportScreen state={state} />}
+        {tab === 'ajustes' && <SettingsScreen state={state} />}
+      </div>
+      <nav class="tabbar" style={{ '--i': idx }}>
+        <span class="tab-pill" aria-hidden="true" />
         {TABS.map((t) => (
-          <button class={tab === t.id ? 'on' : ''} aria-current={tab === t.id ? 'page' : undefined} onClick={() => { setTab(t.id); window.scrollTo(0, 0); }}>
+          <button class={tab === t.id ? 'on' : ''} aria-current={tab === t.id ? 'page' : undefined} onClick={() => go(t.id)}>
             <Icon name={t.icon} />
             <span>{t.label}</span>
           </button>

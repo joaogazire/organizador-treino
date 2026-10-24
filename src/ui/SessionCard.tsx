@@ -4,7 +4,7 @@ import { buildSteps, estimateMinutes, exercisesFor, fmtNum, repsLabel, setsFor }
 import type { SessionLog, Settings } from '../store/types';
 import { startSession, skipSession, deleteLog, type SessionRef } from './actions';
 import { useState } from 'preact/hooks';
-import { Icon } from './common';
+import { Icon, Sheet } from './common';
 
 export function SessionCard(props: {
   ref_: SessionRef;
@@ -16,6 +16,7 @@ export function SessionCard(props: {
 }) {
   const { plan, cycleWeek, settings, log, ref_ } = props;
   const [short, setShort] = useState(false);
+  const [more, setMore] = useState(false);
   const opts = { cycleWeek, short, ...settings };
   const steps = buildSteps(plan.workout, opts);
   const minutes = estimateMinutes(steps);
@@ -51,39 +52,55 @@ export function SessionCard(props: {
   const status = log ? (log.skipped ? 'skipped' : 'done') : 'todo';
   const canShort = props.officeDay && isStrength(plan.workout) && plan.workout !== 'peito-extra';
 
+  const peek = lines.length > 1 ? `${lines.length} itens · ${lines[0].replace(/^.* — /, '')}${lines.length > 1 ? ' …' : ''}` : lines[0] ?? subtitle;
+  const restLabel = DAY_TYPES[ref_.dayType].id === 'descanso' ? 'Pular' : 'Descansar hoje';
+
   return (
     <article class={`session ${status}`}>
       <div class="session-top">
         <span class="slot">{SLOT_LABEL[plan.slot]}{plan.optional ? ' · opcional' : ''}</span>
-        <span class="muted">~{minutes} min</span>
+        <span class="muted">~{minutes} min{short ? ' · versão curta' : ''}</span>
       </div>
       <h3 class="session-title">{title}</h3>
-      <p class="muted small">{subtitle}</p>
-      {lines.length > 0 && (
-        <ul class="exercise-list">
-          {lines.map((l) => <li>{l}</li>)}
-        </ul>
-      )}
-      {status === 'todo' && (
-        <>
-          {canShort && (
-            <label class="check">
-              <input type="checkbox" checked={short} onChange={(e) => setShort((e.target as HTMLInputElement).checked)} />
-              Dia pesado? Versão 25 min (3 exercícios, 3 séries)
-            </label>
-          )}
+      <button class="peek" onClick={() => setMore(true)}>
+        <span>{isStrength(plan.workout) ? `${lines.length} exercícios · ${subtitle}` : peek}</span>
+        <Icon name="next" size={14} />
+      </button>
+      {status === 'todo' ? (
+        <div class="session-actions">
           <button class="btn primary big" onClick={() => startSession(ref_, { short })}>Começar</button>
-          <div class="row gap">
-            <button class="btn quiet" onClick={() => startSession(ref_, { short, manual: true })}>Já fiz, registrar</button>
-            {plan.optional && <button class="btn quiet" onClick={() => skipSession(ref_)}>{DAY_TYPES[ref_.dayType].id === 'descanso' ? 'Pular' : 'Descansar hoje'}</button>}
-          </div>
-        </>
-      )}
-      {log && (
-        <div class="row between">
-          <span class="badge"><Icon name={log.skipped ? 'minus' : 'check'} size={16} />{log.skipped ? 'Descansou' : log.partial ? 'Parcial' : 'Feito'}{log.runKm ? ` · ${fmtNum(log.runKm)} km` : ''}</span>
-          <button class="btn link" onClick={() => confirm('Desfazer este registro?') && deleteLog(log.id)}>Desfazer</button>
+          <button class="icon-btn lg" onClick={() => setMore(true)} aria-label="Mais opções"><Icon name="more" /></button>
         </div>
+      ) : (
+        log && (
+          <div class="row between">
+            <span class="badge"><Icon name={log.skipped ? 'minus' : 'check'} size={16} />{log.skipped ? 'Descansou' : log.partial ? 'Parcial' : 'Feito'}{log.runKm ? ` · ${fmtNum(log.runKm)} km` : ''}</span>
+            <button class="btn link" onClick={() => setMore(true)}>Detalhes</button>
+          </div>
+        )
+      )}
+      {more && (
+        <Sheet title={title} onClose={() => setMore(false)}>
+          {(close) => (
+            <>
+              <p class="muted small">{subtitle}</p>
+              {lines.length > 0 && <ul class="exercise-list">{lines.map((l) => <li>{l}</li>)}</ul>}
+              {status === 'todo' && canShort && (
+                <button class="menu-row switch-row" role="switch" aria-checked={short} onClick={() => setShort(!short)}>
+                  <span>Dia pesado? Versão 25 min</span>
+                  <span class={`switch${short ? ' on' : ''}`}><i /></span>
+                </button>
+              )}
+              {status === 'todo' && (
+                <>
+                  <button class="btn quiet" onClick={() => { close(); startSession(ref_, { short, manual: true }); }}>Já fiz, registrar</button>
+                  {plan.optional && <button class="btn quiet" onClick={() => { close(); skipSession(ref_); }}>{restLabel}</button>}
+                </>
+              )}
+              {log && <button class="btn danger" onClick={() => confirm('Desfazer este registro?') && (close(), deleteLog(log.id))}>Desfazer registro</button>}
+            </>
+          )}
+        </Sheet>
       )}
     </article>
   );
